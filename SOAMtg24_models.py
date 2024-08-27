@@ -139,6 +139,10 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     X_train_scaled = scaler.fit_transform(X_train)
 
     # Train SVM model
+    treated_mask1 = weighted_test_df['Tx'] == 1
+    print(f"weight Tx: {weighted_test_df.loc[treated_mask1, 'weight'].mean()}")
+    print(f"weight ~Tx: {weighted_test_df.loc[~treated_mask1, 'weight'].mean()}")
+    print(weighted_train_df.head())
     svm_model = SVC(kernel=kernel, C=svm_C, probability=True, random_state=42)
     svm_model.fit(X_train_scaled, y_train, sample_weight=weights)
 
@@ -154,7 +158,7 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     total_inverse_R = weighted_test_df.loc[treated_mask, 'transformed_risk'].sum()
     total_cost = create_cost(weighted_test_df, 'pred_tx').loc[treated_mask, 'cost'].sum()
 
-    print(weighted_test_df.head())
+    #print(weighted_test_df.head())
     
     test_accuracy = accuracy_score(test_df[Tx], weighted_test_df['pred_tx'])
 
