@@ -140,6 +140,10 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
 
     # Train SVM model
     treated_mask1 = weighted_test_df['Tx'] == 1
+    print(f"transformed risk Tx: {weighted_test_df.loc[treated_mask1, 'transformed_risk'].mean()}")
+    print(f"transformed risk ~Tx: {weighted_test_df.loc[~treated_mask1, 'transformed_risk'].mean()}")
+    print(f"cost Tx: {weighted_test_df.loc[treated_mask1, 'cost'].mean()}")
+    print(f"cost ~Tx: {weighted_test_df.loc[~treated_mask1, 'cost'].mean()}")
     print(f"weight Tx: {weighted_test_df.loc[treated_mask1, 'weight'].mean()}")
     print(f"weight ~Tx: {weighted_test_df.loc[~treated_mask1, 'weight'].mean()}")
     print(weighted_train_df.head())
@@ -170,12 +174,12 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     print(f"Test accuracy: {test_accuracy:.4f}")
     print("----")
     
-    return svm_model, scaler, test_accuracy, total_inverse_R, total_cost, num_treated_pred
+    return test_accuracy, total_inverse_R, total_cost, num_treated_pred
 
 def analyze_k_values(train_df, test_df, features, Tx, cost_col, Y, k_values=np.arange(0, 1.1, 0.1), svm_C=1.0):
     results = []
     for k in k_values:
-        _, _, test_accuracy, total_inverse_R, total_cost, num_treated = train_owl_svm(
+        test_accuracy, total_inverse_R, total_cost, num_treated = train_owl_svm(
             train_df, test_df, features, Tx, cost_col, Y, k=k, svm_C=svm_C
         )
         results.append({
