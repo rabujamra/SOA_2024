@@ -39,9 +39,9 @@ def create_treatment(df, p=.4, q=.5, p1=.85, q1=.6):
     def generate_binary(row, p, q, p1, q1):
         if row['Tx'] * row['Readmit'] == 1:
             if row['subgroup'] == 1:
-                return 1 - int(np.random.rand() < p * q)
-            else:
                 return 1 - int(np.random.rand() < p1 * q1)
+            else:
+                return 1 - int(np.random.rand() < p * q)
         else:
             return row['Readmit']
     
@@ -56,11 +56,11 @@ def create_treatment1(df, p=.4, q=.5, p1=.85, q1=.6):
         if row['Tx'] * row['Readmit'] == 1:
             if row['subgroup'] == 1:
                 # Higher probability of reducing readmission, skewed
-                reduction_probability = np.random.uniform(p*q, p*q + 0.1)
+                reduction_probability = np.random.uniform(p1*q1, p1*q1 + 0.1)
                 return 1 - int(np.random.rand() < reduction_probability)
             else:
                 # Higher probability of reducing readmission, skewed
-                reduction_probability = np.random.uniform(p1*q1, p1*q1 + 0.1)
+                reduction_probability = np.random.uniform(p*q, p*q + 0.1)
                 return 1 - int(np.random.rand() < reduction_probability)
         else:
             return row['Readmit']
@@ -118,7 +118,7 @@ def calculate_owl_weights(df, X_columns, Tx, cost, Y, k=0.5, alpha=1.0, epsilon=
      
     return df
 
-def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, kernel='linear', svm_C=1.0, epsilon=1e-8):
+def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, kernel='linear', svm_C=1.0, max_iter=5000, epsilon=1e-8):
     print(f"Starting train_owl_svm with k={k}, SVM C={svm_C}")
     
     # Copy dataframes to avoid modifying the original data
@@ -139,15 +139,16 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     X_train_scaled = scaler.fit_transform(X_train)
 
     # Train SVM model
-    treated_mask1 = weighted_test_df['Tx'] == 1
-    print(f"transformed risk Tx: {weighted_test_df.loc[treated_mask1, 'transformed_risk'].mean()}")
-    print(f"transformed risk ~Tx: {weighted_test_df.loc[~treated_mask1, 'transformed_risk'].mean()}")
-    print(f"cost Tx: {weighted_test_df.loc[treated_mask1, 'cost'].mean()}")
-    print(f"cost ~Tx: {weighted_test_df.loc[~treated_mask1, 'cost'].mean()}")
-    print(f"weight Tx: {weighted_test_df.loc[treated_mask1, 'weight'].mean()}")
-    print(f"weight ~Tx: {weighted_test_df.loc[~treated_mask1, 'weight'].mean()}")
-    print(weighted_train_df.head())
-    svm_model = SVC(kernel=kernel, C=svm_C, probability=True, random_state=42)
+    #treated_mask1 = weighted_test_df['Tx'] == 1
+    #print(f"transformed risk Tx: {weighted_test_df.loc[treated_mask1, 'transformed_risk'].mean()}")
+    #print(f"transformed risk ~Tx: {weighted_test_df.loc[~treated_mask1, 'transformed_risk'].mean()}")
+    #print(f"cost Tx: {weighted_test_df.loc[treated_mask1, 'cost'].mean()}")
+    #print(f"cost ~Tx: {weighted_test_df.loc[~treated_mask1, 'cost'].mean()}")
+    #print(f"weight Tx: {weighted_test_df.loc[treated_mask1, 'weight'].mean()}")
+    #print(f"weight ~Tx: {weighted_test_df.loc[~treated_mask1, 'weight'].mean()}")
+    #print(weighted_train_df.head())
+    #svm_model = SVC(kernel=kernel, C=svm_C, probability=True, random_state=42)
+    svm_model = SVC(kernel=kernel, C=svm_C, probability=True, random_state=42, max_iter=max_iter)
     svm_model.fit(X_train_scaled, y_train, sample_weight=weights)
 
     # Prepare testing data
@@ -167,20 +168,20 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     test_accuracy = accuracy_score(test_df[Tx], weighted_test_df['pred_tx'])
 
     # Print results
-    print(f"Test set size: {len(weighted_test_df)}")
+    #print(f"Test set size: {len(weighted_test_df)}")
     print(f"Predicted treated: {num_treated_pred} ({num_treated_pred/len(weighted_test_df)*100:.2f}%)")
-    print(f"Total Inverse R: {total_inverse_R:.2f}")
-    print(f"Total Cost: {total_cost:.2f}")
-    print(f"Test accuracy: {test_accuracy:.4f}")
+    #print(f"Total Inverse R: {total_inverse_R:.2f}")
+    #print(f"Total Cost: {total_cost:.2f}")
+    #print(f"Test accuracy: {test_accuracy:.4f}")
     print("----")
     
     return test_accuracy, total_inverse_R, total_cost, num_treated_pred
 
-def analyze_k_values(train_df, test_df, features, Tx, cost_col, Y, k_values=np.arange(0, 1.1, 0.1), svm_C=1.0):
+def analyze_k_values(train_df, test_df, features, Tx, cost_col, Y, k_values=np.arange(0, 1.1, 0.1), svm_C=1.0, max_iter=5000):
     results = []
     for k in k_values:
         test_accuracy, total_inverse_R, total_cost, num_treated = train_owl_svm(
-            train_df, test_df, features, Tx, cost_col, Y, k=k, svm_C=svm_C
+            train_df, test_df, features, Tx, cost_col, Y, k=k, svm_C=svm_C, max_iter=max_iter
         )
         results.append({
             'k': k, 
@@ -194,21 +195,21 @@ def analyze_k_values(train_df, test_df, features, Tx, cost_col, Y, k_values=np.a
 def plot_R_vs_C_with_treatment(results_df):
     fig, ax1 = plt.subplots(figsize=(12, 8))
 
-    ax1.plot(results_df['total_C'], results_df['total_R'], 'bo-')
+    ax1.plot(results_df['total_cost'], results_df['total_inverse_R'], 'bo-')
     #ax1.plot(results_df['total_cost'], results_df['total_inverse_R'], 'bo-')
     ax1.set_xlabel('Total Cost (C)')
     ax1.set_ylabel('Total Risk (R)', color='b')
     ax1.tick_params(axis='y', labelcolor='b')
 
     ax2 = ax1.twinx()
-    ax2.plot(results_df['total_C'], results_df['num_treated'], 'ro-')
+    ax2.plot(results_df['total_cost'], results_df['num_treated'], 'ro-')
     #ax2.plot(results_df['total_cost'], results_df['num_treated'], 'ro-')
     ax2.set_ylabel('Number of People Treated', color='r')
     ax2.tick_params(axis='y', labelcolor='r')
 
     plt.title('Total Risk vs Total Cost and Number Treated for Different k Values')
     for i, row in results_df.iterrows():
-        ax1.annotate(f"k={row['k']:.1f}", (row['total_C'], row['total_R']))
+        ax1.annotate(f"k={row['k']:.1f}", (row['total_cost'], row['total_inverse_R']))
     
     plt.grid(True)
     plt.tight_layout()
