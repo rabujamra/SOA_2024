@@ -118,7 +118,7 @@ def calculate_owl_weights(df, X_columns, Tx, cost, Y, k=0.5, alpha=1.0, epsilon=
      
     return df
 
-def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, kernel='linear', svm_C=1.0, max_iter=5000, epsilon=1e-8):
+def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0.2, kernel='linear', svm_C=1.0, max_iter=5000, epsilon=1e-8):
     print(f"Starting train_owl_svm with k={k}, SVM C={svm_C}")
     
     # Copy dataframes to avoid modifying the original data
@@ -170,8 +170,8 @@ def train_owl_svm(train_df, test_df, features, Tx, cost_col, Y, k=0.5, alpha=0, 
     # Print results
     #print(f"Test set size: {len(weighted_test_df)}")
     print(f"Predicted treated: {num_treated_pred} ({num_treated_pred/len(weighted_test_df)*100:.2f}%)")
-    #print(f"Total Inverse R: {total_inverse_R:.2f}")
-    #print(f"Total Cost: {total_cost:.2f}")
+    print(f"Total Inverse R: {total_inverse_R:.2f}")
+    print(f"Total Cost: {total_cost:.2f}")
     #print(f"Test accuracy: {test_accuracy:.4f}")
     print("----")
     
@@ -193,24 +193,21 @@ def analyze_k_values(train_df, test_df, features, Tx, cost_col, Y, k_values=np.a
     return pd.DataFrame(results)
 
 def plot_R_vs_C_with_treatment(results_df):
-    fig, ax1 = plt.subplots(figsize=(12, 8))
-
-    ax1.plot(results_df['total_cost'], results_df['total_inverse_R'], 'bo-')
-    #ax1.plot(results_df['total_cost'], results_df['total_inverse_R'], 'bo-')
-    ax1.set_xlabel('Total Cost (C)')
-    ax1.set_ylabel('Total Risk (R)', color='b')
-    ax1.tick_params(axis='y', labelcolor='b')
-
-    ax2 = ax1.twinx()
-    ax2.plot(results_df['total_cost'], results_df['num_treated'], 'ro-')
-    #ax2.plot(results_df['total_cost'], results_df['num_treated'], 'ro-')
-    ax2.set_ylabel('Number of People Treated', color='r')
-    ax2.tick_params(axis='y', labelcolor='r')
-
-    plt.title('Total Risk vs Total Cost and Number Treated for Different k Values')
-    for i, row in results_df.iterrows():
-        ax1.annotate(f"k={row['k']:.1f}", (row['total_cost'], row['total_inverse_R']))
-    
+    # Plot total_inverse_R vs total_cost
+    plt.figure(figsize=(10, 6))
+    plt.scatter(results_df['total_cost'], results_df['total_inverse_R'], c=results_df['k'], cmap='viridis', edgecolors='k')
+    plt.colorbar(label='k value')
+    plt.xlabel('Total Cost (C)')
+    plt.ylabel('Total Inverse Reward (R)')
+    plt.title('Total Inverse Reward (R) vs. Total Cost (C) for Different k Values')
     plt.grid(True)
-    plt.tight_layout()
+    plt.show()
+
+    # Plot the number of treated patients against k values
+    plt.figure(figsize=(10, 6))
+    plt.plot(results_df['k'], results_df['num_treated'], marker='o', linestyle='-', color='b')
+    plt.xlabel('k value')
+    plt.ylabel('Number of Treated Patients')
+    plt.title('Number of Treated Patients vs. k Value')
+    plt.grid(True)
     plt.show()
