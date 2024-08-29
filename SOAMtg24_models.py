@@ -70,12 +70,61 @@ def create_treatment1(df, p=.4, q=.5, p1=.85, q1=.6):
 
     return df
 
+def create_treatment2(df, p=.4, q=.5, p1=.85, q1=.6, low_effect_prob=0.5):
+    # Define a function to apply to each row of the DataFrame
+    def generate_bimodal_effect(row, p, q, p1, q1, low_effect_prob):
+        if row['Tx'] * row['Readmit'] == 1:
+            if row['subgroup'] == 1:
+                # For subgroup 1, decide whether to apply strong or weak effect
+                if np.random.rand() < low_effect_prob:
+                    # Low effect: almost no reduction
+                    reduction_probability = 0.05  # Small reduction chance
+                else:
+                    # High effect: strong reduction
+                    reduction_probability = p1 * q1
+            else:
+                # For other subgroups, decide whether to apply strong or weak effect
+                if np.random.rand() < low_effect_prob:
+                    # Low effect: almost no reduction
+                    reduction_probability = 0.05  # Small reduction chance
+                else:
+                    # High effect: strong reduction
+                    reduction_probability = p * q
+                    
+            return 1 - int(np.random.rand() < reduction_probability)
+        else:
+            return row['Readmit']
+
+    # Apply the function to each row of the DataFrame to create Readmit_red
+    df['Readmit_red'] = df.apply(lambda row: generate_bimodal_effect(row, p, q, p1, q1, low_effect_prob), axis=1)
+
+    return df
+
+
 # TODO: Improve! #
 def create_cost(df, Tx, c0=1 , c1=40):
     df['cost'] = df[Tx].apply(lambda x: c1 if x == 1 else c0)
 
     return df
 
+def create_cost1(df, Tx_col, subgroup_col, no_tx_cost=25, base_costs=None, std_devs=None):
+    if base_costs is None:
+        base_costs = {0: 400, 1: 600, 2: 800}  # Default base costs for subgroups 0, 1, and 2
+    if std_devs is None:
+        std_devs = {0: 50, 1: 75, 2: 100}  # Default standard deviations for subgroups
+
+    def cost_function(row):
+        if row[Tx_col] == 1:
+            base_cost = base_costs[row[subgroup_col]]
+            std_dev = std_devs[row[subgroup_col]]
+            return np.random.normal(base_cost, std_dev)
+        else:
+            return np.random.normal(no_tx_cost, 5)  # Small deviation around no treatment cost
+
+    df['cost'] = df.apply(cost_function, axis=1)
+    
+    return df
+    
 def calculate_risk_propensity(df, X_columns, Tx, Y):
     # Create a copy of the dataframe to avoid modifying the original
     df = df.copy()
