@@ -12,23 +12,6 @@ a, b, c = 2, 5, 3
 C0, epsilon = 1, 1e-6
 alpha = 1.5
 
-percentiles_R = {
-    'T1': [60, 80],
-    'T2': [30, 70]
-}
-percentiles_C = {
-    'T1': [60, 80],
-    'T2': [30, 70]
-}
-impact_factors = {
-    'T1': [.2, .4, .2],
-    'T2': [.1, .3, .5]
-}
-# Cost factors for C1
-cost_factors = {
-    'T1': [2, 4, 7],  
-    'T2': [1, 4, 5]   
-}
 ###################
 percentiles_R = {
     'T1': [70, 90],  # High return cases for T1
@@ -45,6 +28,29 @@ impact_factors = {
 cost_factors = {
     'T1': [3, 6, 9],   # Expensive treatments for T1
     'T2': [2, 4, 8]    # Moderate to expensive treatments for T2
+}
+
+###################
+percentiles_R = {
+    'T1': [60, 85],  # T1 is more effective for higher-risk patients
+    'T2': [40, 75]   # T2 has a broader impact range
+}
+
+percentiles_C = {
+    'T1': [60, 85],  # T1 is more effective for higher-risk patients
+    'T2': [40, 75]   # T2 has a broader impact range
+}
+
+# Define new impact_factors
+impact_factors = {
+    'T1': [0.05, 0.15, 0.25],  # T1 has higher impact on highest risk group
+    'T2': [0.10, 0.20, 0.15]   # T2 has highest impact on middle risk group
+}
+
+# Define cost factors (new addition to create cost variation)
+cost_factors = {
+    'T1': [800, 1200, 1600],   # T1 costs increase with risk
+    'T2': [1500, 2000, 1800]   # T2 has high initial cost, slightly lower for highest risk
 }
 
 
